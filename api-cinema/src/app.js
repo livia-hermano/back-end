@@ -197,4 +197,97 @@ app.get('/filmes/:id', async (req,res) => {
     }
  }) 
 
+// Salas:
+
+app.get('/salas', async (req,res) => {
+    try{
+        const salas = await queryAsync ('SELECT * FROM sala')
+        res.json({
+            sucesso: true,
+            dados: salas,
+            total: salas.length
+        })
+    }catch (erro) {
+        console.error('Erro ao listar as salas' , erro)
+        res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro ao listar as salas",
+            erro: erro.messgae
+        })
+    }
+})
+
+app.get('/salas/:id', async (req,res) => {
+    try{
+        const {id} = req.params
+        if(!id || isNaN(id)){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'Id de sala inválido'
+            })
+        }
+        const sala = await queryAsync ('SELECT * FROM sala WHERE id = ?', [id])
+        if(sala.length === 0){
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: 'Sala não encontrada'
+            })
+        }
+        res.json({
+            sucesso: true,
+            dados: sala [0]
+        })
+    }catch (erro){
+        console.error('Erro ao listar salas: ', erro)
+        res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao listar salas',
+            erro: erro.message
+        })
+    }
+})
+
+
+app.post('/salas', async (req,res) =>{
+    try{
+        const {nome, capacidade} = req.body
+
+        if(!nome || !capacidade){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Nome e capacidade são obrigatórios"
+            })
+        }
+        if(typeof capacidade !== 'number' || capacidade <= 0){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Capacidade só pode ser número positivo"
+            })
+        }
+        const novaSala = {
+            nome: nome.trim(),
+            capacidade: capacidade
+        }
+        const resultado = await queryAsync('INSERT INTO sala SET ?', [novaSala])
+
+        res.status(201).json({
+            sucesso: true,
+            mensagem: "Sala criada",
+            id: resultado.insertId
+        })
+    } catch (erro) {
+        console.error('Erro ao cadastrar sala: ', erro)
+            res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao cadastrar sala',
+            erro: erro.message
+        }
+           )
+    }
+})
+
+
+
+
+
 module.exports = app
