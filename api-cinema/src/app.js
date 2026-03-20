@@ -199,7 +199,7 @@ app.get('/filmes/:id', async (req,res) => {
 
 // Salas:
 
-app.get('/salas', async (req,res) => {
+app.get('/salas', async(req,res) => {
     try{
         const salas = await queryAsync ('SELECT * FROM sala')
         res.json({
@@ -208,11 +208,11 @@ app.get('/salas', async (req,res) => {
             total: salas.length
         })
     }catch (erro) {
-        console.error('Erro ao listar as salas' , erro)
+        console.error('Erro ao listar as salas: ' , erro)
         res.status(500).json({
             sucesso: false,
             mensagem: "Erro ao listar as salas",
-            erro: erro.messgae
+            erro: erro.message
         })
     }
 })
@@ -286,8 +286,238 @@ app.post('/salas', async (req,res) =>{
     }
 })
 
+app.put('/salas/:id', async (req,res) =>{
+    try{
+        const{id}= req.params
+        const{nome, capacidade} =  req.body
 
+        if(!id || isNaN(id)){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'ID de sala inválido'
+            })
+        }
+        const salaExiste = await queryAsync ('SELECT * FROM sala WHERE id = ?', [id])
+        if (salaExiste.length === 0){
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: 'Sala não encontrada'
+            })
+        }
+        const salaAtualizada = {}
+        if(nome !== undefined) salaAtualizada.nome = nome.trim()
+        if(typeof capacidade !== 'number' || capacidade <= 0)return res.status(400).json({
+            sucesso: false,
+            mensagem: "Capacidade deve ser um número positivo"            
+            })
+            salaAtualizada.capacidade = capacidade
 
+        if(Object.keys(salaAtualizada).length === 0){
+        return res.status(400).json({
+            sucesso: false,
+            mensagem: "Nenhum campo para atualizar"
+        })
+    }
+    await queryAsync('UPDATE sala SET ? WHERE id = ?', [salaAtualizada, id])
+    res.json({
+        sucesso: true,
+        mensagem: "Sala Atualizada"
+    })
 
+    } catch (erro) {
+        console.error('Erro ao atualizar sala: ', erro)
+              res.status(500).json({
+                sucesso: false,
+                mensagem: 'Erro ao atualizar sala: ', 
+                erro: erro.message
+              })
+    }
+})
+
+app.delete('/salas/:id', async (req,res) =>{
+    try{
+        const {id} = req.params
+
+        if(!id || isNaN(id)){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'ID de sala inválido'
+            })
+        }
+        const salaExiste = await queryAsync ('SELECT * FROM sala WHERE id = ?', [id])
+
+        if(salaExiste.length === 0){
+            return res.status(404).json({
+                sucesso:false,
+                mensagem: 'Sala não encontrada'
+            })
+        }
+        await queryAsync('DELETE FROM sala WHERE id = ?', [id])
+        res.json({
+            sucesso: true,
+            mensagem: "Sala excluída com sucesso"
+        })
+    } catch (erro) {
+        console.error('Erro ao deletar a sala: ', erro)
+        res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao deletar sala',
+            erro: erro.message
+        })
+    }
+})
+
+//sessoes
+
+app.get('/sessoes', async(req,res) => {
+    try{
+        const sessoes = await queryAsync ('SELECT * FROM sessao')
+        res.json({
+            sucesso: true,
+            dados: sessoes,
+            total: sessoes.length
+        })
+    }catch (erro) {
+        console.error('Erro ao listar as sessoes: ' , erro)
+        res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro ao listar as sessoes",
+            erro: erro.message
+        })
+    }
+})
+
+app.get('/sessoes/:id', async (req,res) => {
+    try{
+        const {id} = req.params
+        if(!id || isNaN(id)){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'Id de sessão inválido'
+            })
+        }
+        const sessao = await queryAsync ('SELECT * FROM sessao WHERE id = ?', [id])
+        if(sessao.length === 0){
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: 'Sessão não encontrada'
+            })
+        }
+        res.json({
+            sucesso: true,
+            dados: sessao [0]
+        })
+    }catch (erro){
+        console.error('Erro ao listar sessões: ', erro)
+        res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao listar sessões',
+            erro: erro.message
+        })
+    }
+})
+
+app.post('/sessoes', async (req,res) => {
+    try{
+        const {filme_id, sala_id, data_hora, preco} = req.body
+
+        if(!filme_id || !sala_id  || !data_hora || !preco){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Informações obrigatórios faltando"
+            })
+        }
+        if(filme_id !== undefined){
+            if(isNaN(filme_id)) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'ID do filme não existe'
+            })
+        }
+        if((await queryAsync('SELECT * FROM filme WHERE id = ?', [filme_id])).length == 0){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "ID do filme não encontrado"
+            })
+        }
+    }
+    if(sala_id !== undefined) {
+        if(isNaN(sala_id)){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'ID da sala é inválido',
+            })
+        }
+        if((await queryAsync("SELECT * FROM sala WHERE id = ?", [sala_id])).lenght == 0){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'ID da sala não encontrado',
+            })
+        }
+    }
+    if(isNaN(preco) || preco < 0){
+        return res.status(400).json({
+            sucesso: false,
+            mensagem: 'Preço deve ser um número positivo'
+        })
+    }
+    const novaSessao = {
+        filme_id: filme_id,
+        sala_id: sala_id,
+        data_hora: data_hora,
+        preco: preco
+    }
+    const resultado = await queryAsync("INSERT INTO sessao SET ?", novaSessao)
+
+    res.status(201).json({
+        sucesso: true,
+        mensagem: 'Sessão criada',
+        id: resultado.insertId
+    })
+    }
+    catch(erro) {
+        console.error('Erro ao cadastrar sala: ', erro)
+            res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao cadastrar sala',
+            erro: erro.message
+        }
+           )
+    }
+    }
+)
+
+app.delete('/sessoes/:id', async (req,res) =>{
+    try{
+        const {id} = req.params
+
+        if(!id || isNaN(id)){
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'ID de sessão inválido'
+            })
+        }
+        const sessaoExiste = await queryAsync ('SELECT * FROM sessao WHERE id = ?', [id])
+
+        if(sessaoExiste.length === 0){
+            return res.status(404).json({
+                sucesso:false,
+                mensagem: 'Sessão não encontrada'
+            })
+        }
+        await queryAsync('DELETE FROM sessao WHERE id = ?', [id])
+        res.json({
+            sucesso: true,
+            mensagem: "Sessão excluída com sucesso"
+        })
+    } catch (erro) {
+        console.error('Erro ao deletar a sessão: ', erro)
+        res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao deletar sessão',
+            erro: erro.message
+        })
+    }
+})
 
 module.exports = app
