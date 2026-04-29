@@ -17,8 +17,12 @@ class ProdutoController{
     async buscarPorId(req, res){
         try{
             const resultado = await ProdutoService.buscarProdutoPorId(req.params.id)
+            res.json(resultado)
         }catch (erro){
-
-        }
+             res.status(500).json({
+                sucesso: false,
+                mensagem: error.mensagem || 'Erro interno do servidor',
+                erro: erro 
+        })
     }
-}
+}}
