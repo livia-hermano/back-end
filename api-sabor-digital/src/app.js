@@ -3,6 +3,9 @@ const express = require('express')
 const pool = require('./config/database')
 
 const app = express()
+const routes = require('./routes')
+app.use('/', routes)
+module.exports = app
 
 app.use(express.json())
 
