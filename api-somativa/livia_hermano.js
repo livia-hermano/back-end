@@ -143,7 +143,7 @@ app.delete('/salas/:id', async (req, res) => {
         if(!id || isNaN(id)){
             return res.status(400).json({
                 sucesso: false,
-                mensagem: 'ID da sla está inválido'
+                mensagem: 'ID da sala está inválido'
             })
         }
         const salaExiste = await queryAsync("SELECT * FROM sala WHERE id = ?", [id])
