@@ -41,4 +41,4 @@ class ProdutoRepository{
     }
 }
 
-module.exports = new
+module.exports = new ProdutoRepository()
