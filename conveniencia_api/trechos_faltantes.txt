@@ -1,0 +1,58 @@
+
+--- TRECHO A ---
+router.post('/', ProdutoController.cadastrar);
+
+--- TRECHO B ---
+
+    async atualizarProduto(id, dados) {
+        if (!id || isNaN(id)) throw { status: 400, mensagem: "ID inválido" };
+        
+        const existe = await ProdutoRepository.findById(id);
+        if (!existe) throw { status: 404, mensagem: "Produto não encontrado" };
+
+        const atualizado = {};
+        const { nome, descricao, preco, estoque, categoria, disponivel } = dados;
+
+        if (nome !== undefined) atualizado.nome = nome.trim();
+        if (descricao !== undefined) atualizado.descricao = descricao.trim();
+        if (preco !== undefined) {
+            if (typeof preco !== "number" || preco < 0) throw { status: 400, mensagem: "Preço inválido" };
+            atualizado.preco = preco;
+        }
+        if (estoque !== undefined) {
+            if (typeof estoque !== "number" || estoque < 0) throw { status: 400, mensagem: "Estoque inválido" };
+            atualizado.estoque = estoque;
+        }
+        if (categoria !== undefined) atualizado.categoria = categoria;
+        if (disponivel !== undefined) atualizado.disponivel = disponivel;
+
+        if (Object.keys(atualizado).length === 0) throw { status: 400, mensagem: "Nenhum dado válido" };
+
+        await ProdutoRepository.update(id, atualizado);
+        return { sucesso: true, mensagem: "Produto atualizado com sucesso" };
+    }
+
+
+--- TRECHO C ---
+
+    async create(produtoData) {
+        const { nome, descricao, preco, estoque, categoria, disponivel } = produtoData;
+        const [result] = await pool.query(
+            'INSERT INTO produto (nome, descricao, preco, estoque, categoria, disponivel) VALUES (?, ?, ?, ?, ?, ?)',
+            [nome, descricao, preco, estoque, categoria, disponivel]
+        );
+        return result.insertId;
+    }
+
+
+--- TRECHO D ---
+
+    async buscarPorId(req, res) {
+        try {
+            const resultado = await ProdutoService.buscarProdutoPorId(req.params.id);
+            res.json(resultado);
+        } catch (erro) {
+            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || "Erro interno" });
+        }
+    }
+
